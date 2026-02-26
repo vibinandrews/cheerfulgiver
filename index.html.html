@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selfish Meter Test</title>
+
+<style>
+  body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:linear-gradient(to bottom,#fef9c3,#bae6fd,#fbcfe8);
+    color:#1e293b;
+  }
+
+  /* Top Banner (NOT fixed anymore) */
+  .header{
+    text-align:center;
+    padding:25px;
+    background:rgba(37,99,235,0.9);
+    color:white;
+    border-bottom:5px solid #22c55e;
+  }
+
+  .banner{
+    font-size:2.4rem;
+    font-weight:bold;
+  }
+
+  .subtitle{
+    margin-top:8px;
+    font-size:1rem;
+    opacity:0.9;
+  }
+
+  .progress-area{
+    margin-top:15px;
+  }
+
+  #progressText{
+    font-weight:bold;
+    margin-bottom:6px;
+  }
+
+  .progress-container{
+    width:80%;
+    margin:auto;
+    height:18px;
+    background:rgba(255,255,255,0.3);
+    border-radius:20px;
+    overflow:hidden;
+    position:relative;
+  }
+
+  #progressBar{
+    height:100%;
+    width:0%;
+    background:#22c55e;
+    transition:width 0.3s;
+  }
+
+  #timerBar{
+    height:100%;
+    width:100%;
+    background:white;
+    opacity:0.25;
+    position:absolute;
+    top:0;left:0;
+    transition:width 1s linear;
+  }
+
+  .controls{
+    margin-top:18px;
+  }
+
+  input{
+    padding:10px;
+    width:250px;
+    border-radius:10px;
+    border:none;
+    text-align:center;
+    font-size:1rem;
+  }
+
+  button{
+    margin-top:12px;
+    padding:12px 28px;
+    border:none;
+    border-radius:18px;
+    font-weight:bold;
+    font-size:1.05rem;
+    cursor:pointer;
+    background:linear-gradient(90deg,#22c55e,#2563eb,#a855f7);
+    color:white;
+    transition:transform 0.2s;
+  }
+
+  button:hover{transform:scale(1.05);}
+
+  /* Main Quiz Content */
+  .content{
+    max-width:900px;
+    margin:auto;
+    padding:30px;
+  }
+
+  .question-card{
+    background:white;
+    padding:20px;
+    margin-bottom:18px;
+    border-radius:18px;
+    box-shadow:0 5px 14px rgba(0,0,0,0.15);
+  }
+
+  .question-title{
+    font-weight:bold;
+    margin-bottom:12px;
+  }
+
+  label{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px;
+    border-radius:10px;
+    background:#f8fafc;
+    cursor:pointer;
+    margin-bottom:8px;
+  }
+
+  label:hover{background:#dbeafe;}
+
+  /* Popup */
+  .popup{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.65);
+    justify-content:center;
+    align-items:center;
+    z-index:2000;
+  }
+
+  .popup-content{
+    background:white;
+    padding:30px;
+    border-radius:18px;
+    max-width:420px;
+    text-align:center;
+  }
+
+  .close-btn{
+    background:#22c55e;
+    margin-top:15px;
+  }
+</style>
+</head>
+
+<body>
+
+<!-- HEADER (scrolls normally, not fixed) -->
+<div class="header">
+  <div class="banner">Selfish Meter Test</div>
+  <div class="subtitle">
+    “Do nothing out of selfish ambition… in humility value others above yourselves.”
+    (Philippians 2:1–5)
+  </div>
+
+  <div class="progress-area">
+    <div id="progressText">0/10 answered</div>
+    <div class="progress-container">
+      <div id="timerBar"></div>
+      <div id="progressBar"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="applicantName" placeholder="Enter your name...">
+    <br>
+    <button id="startBtn" onclick="startQuiz()">Start 1-Minute Test</button>
+    <div id="timer" style="margin-top:10px;font-weight:bold;">Timer: 60s</div>
+  </div>
+</div>
+
+<!-- QUIZ CONTENT -->
+<div class="content">
+  <form id="quizForm"></form>
+  <button type="button" onclick="calculateScore()">Submit & View Score</button>
+</div>
+
+<!-- POPUP -->
+<div class="popup" id="popup">
+  <div class="popup-content">
+    <div id="popupText"></div>
+    <button onclick="printResults()">Print Results</button>
+    <button class="close-btn" onclick="closePopup()">Close</button>
+  </div>
+</div>
+
+<script>
+const questions = [
+ "You notice someone in church doing a task you wanted. What do you do?",
+ "A teammate gets credit for work you helped with. How do you respond?",
+ "When planning your week, how do you weigh your needs vs others’ needs?",
+ "During disagreement, what is your goal?",
+ "A friend asks for help at an inconvenient time. What is your reaction?",
+ "How do you practice humility in daily life?",
+ "In group ministry, what attitude do you carry?",
+ "When corrected, what is your inner response?",
+ "What does valuing others above yourself look like practically?",
+ "How does Jesus’ mindset in Philippians 2 challenge you?"
+];
+
+const options = [
+ ["Encourage them and look for another way to serve","Feel overlooked and withdraw","Try to take control back"],
+ ["Celebrate their success sincerely","Feel resentful and want recognition","Stay silent but keep score internally"],
+ ["Actively prioritize others even if it costs comfort","Balance only when convenient","Mostly focus on personal plans first"],
+ ["Seek peace, understanding, and unity","Avoid engagement to protect yourself","Win the argument at all costs"],
+ ["Help gladly, trusting God with your schedule","Help only if it benefits you later","Feel annoyed and delay"],
+ ["Serve quietly without needing applause","Serve when people notice","Serve only if it advances your role"],
+ ["Work as a servant alongside others","Prefer independence to avoid compromise","Lead mainly to maintain authority"],
+ ["Receive correction with openness","Get defensive and justify yourself","Dismiss it as irrelevant"],
+ ["Listening, honoring, and putting others first","Agreeing outwardly but resisting inwardly","Seeing humility as unnecessary"],
+ ["A model of sacrificial love to imitate","An ideal that feels unrealistic","Just a historical example"]
+];
+
+const scoresMap = [
+ [0,2,1],[0,2,1],[0,1,2],[0,1,2],[0,1,2],
+ [0,1,2],[0,1,2],[0,1,2],[0,1,2],[0,1,2]
+];
+
+window.onload=()=>{
+ const quizDiv=document.getElementById("quizForm");
+
+ questions.forEach((q,i)=>{
+   let combined=options[i].map((opt,idx)=>({opt,idx}));
+   combined.sort(()=>Math.random()-0.5);
+
+   let card=document.createElement("div");
+   card.className="question-card";
+
+   card.innerHTML=`
+     <div class="question-title">${i+1}. ${q}</div>
+     ${combined.map(item=>`
+       <label>
+         <input disabled type="radio" name="q${i}" value="${item.idx}" onchange="updateProgress()">
+         ${item.opt}
+       </label>
+     `).join("")}
+   `;
+   quizDiv.appendChild(card);
+ });
+ updateProgress();
+};
+
+let timeLeft=60;
+let timerInterval;
+
+function startQuiz(){
+ document.querySelectorAll("input[type=radio]").forEach(r=>r.disabled=false);
+ document.getElementById("startBtn").disabled=true;
+
+ timerInterval=setInterval(()=>{
+   timeLeft--;
+   document.getElementById("timer").innerText=`Timer: ${timeLeft}s`;
+   document.getElementById("timerBar").style.width=(timeLeft/60*100)+"%";
+
+   if(timeLeft<=0){
+     clearInterval(timerInterval);
+     alert("Time is up! Auto-submitting...");
+     calculateScore();
+   }
+ },1000);
+}
+
+function updateProgress(){
+ let answered=0;
+ for(let i=0;i<questions.length;i++){
+   if(document.querySelector(`input[name=q${i}]:checked`)) answered++;
+ }
+ let percent=Math.round(answered/questions.length*100);
+ document.getElementById("progressBar").style.width=percent+"%";
+ document.getElementById("progressText").innerText=`${answered}/10 answered`;
+}
+
+function calculateScore(){
+ const name=document.getElementById("applicantName").value.trim();
+ if(!name) return alert("Enter your name first!");
+
+ let totalScore=0;
+ for(let i=0;i<questions.length;i++){
+   let ans=document.querySelector(`input[name=q${i}]:checked`);
+   if(!ans) return alert("Please answer all questions!");
+   totalScore += scoresMap[i][parseInt(ans.value)];
+ }
+
+ let rating="";
+ if(totalScore<=6) rating="Low selfishness — Christ-like humility!";
+ else if(totalScore<=12) rating="Moderate selfishness — Room to grow.";
+ else rating="High selfishness — Reflect deeply on Philippians 2.";
+
+ document.getElementById("popupText").innerHTML=`
+   <h2>Results for ${name}</h2>
+   <p><b>Score:</b> ${totalScore}/20</p>
+   <p>${rating}</p>
+ `;
+ document.getElementById("popup").style.display="flex";
+}
+
+function printResults(){
+ const content=document.querySelector(".popup-content").innerHTML;
+ let win=window.open("","","width=600,height=600");
+ win.document.write(content);
+ win.print();
+}
+
+function closePopup(){
+ document.getElementById("popup").style.display="none";
+}
+</script>
+
+</body>
+</html>
